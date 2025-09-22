@@ -1,0 +1,6 @@
+venv/
+dist/
+deb_dist/*
+!deb_dist/python3-gpu-settings*.deb
+gpu_settings.egg*
+__pycache__/
