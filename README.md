@@ -61,7 +61,7 @@ Download and install the pre-built `.deb` package:
 
 ```bash
 # Download the latest release
-wget https://github.com/samdani91/GPU_Manager/blob/main/deb_dist/python3-gpu-settings_0.2-1_all.deb
+wget https://github.com/samdani91/GPU_Manager/raw/main/deb_dist/python3-gpu-settings_0.2-1_all.deb
 
 # Install the package
 sudo dpkg -i python3-gpu-settings_0.1-1_all.deb
