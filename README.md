@@ -4,7 +4,6 @@ A modern PyQt6-based GUI application for monitoring and switching between integr
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![PyQt6](https://img.shields.io/badge/PyQt6-6.6.0+-green.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)
 
 ## Features
@@ -62,7 +61,7 @@ Download and install the pre-built `.deb` package:
 
 ```bash
 # Download the latest release
-wget https://github.com/samdani91/GPU_Manager/blob/main/deb_dist/python3-gpu-settings_0.1-1_all.deb
+wget https://github.com/samdani91/GPU_Manager/blob/main/deb_dist/python3-gpu-settings_0.2-1_all.deb
 
 # Install the package
 sudo dpkg -i python3-gpu-settings_0.1-1_all.deb
@@ -116,7 +115,7 @@ sudo apt install python3-stdeb dh-python
 python3 setup.py --command-packages=stdeb.command bdist_deb
 
 # Install the built package
-sudo dpkg -i deb_dist/python3-gpu-settings_0.1-1_all.deb
+sudo dpkg -i deb_dist/python3-gpu-settings_0.2-1_all.deb
 ```
 
 ### Method 5: Standalone Executable
@@ -190,7 +189,8 @@ Package configuration in [`setup.py`](setup.py):
 ```python
 install_requires=[
     "PyQt6",
-    "psutil"
+    "psutil",
+    "PyQt6-Charts"
 ]
 ```
 
@@ -326,14 +326,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Linux community for GPU switching utilities
 - Debian packaging tools and community
 
-## Changelog
-
-### v0.1 (Current)
-- Initial release with basic GPU switching
--  Currently shows live stats only for dedicated NVIDIA GPUs (integrated GPU support coming soon)
-- Automatic dependency checking and installation
-- Debian package distribution
-- Modern dark UI with charts
 
 ---
 
