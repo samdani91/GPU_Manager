@@ -4,7 +4,7 @@ import time
 import importlib.util
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QMessageBox, QApplication,
-    QProgressBar, QInputDialog, QLineEdit
+    QProgressBar
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread, QObject
 
@@ -15,18 +15,15 @@ class InstallerWorker(QObject):
     progress_updated = pyqtSignal(int)
     reboot_required = pyqtSignal()
 
-    def __init__(self, packages, password):
+    def __init__(self, packages):
         super().__init__()
         self.packages = packages
-        self.password = password
 
     def is_installed(self, package, is_python=False):
         if is_python:
-            # Check if Python package is installed
             spec = importlib.util.find_spec(package)
             return spec is not None
         else:
-            # Check Debian package via dpkg
             result = subprocess.run(
                 ["dpkg", "-s", package],
                 stdout=subprocess.PIPE,
@@ -34,22 +31,8 @@ class InstallerWorker(QObject):
             )
             return result.returncode == 0
 
-    def validate_password(self):
-        """Check if sudo password is correct."""
-        proc = subprocess.run(
-            ["sudo", "-S", "echo", "ok"],
-            input=(self.password + "\n").encode(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        return proc.returncode == 0
-
     def run(self):
         try:
-            # Validate password first
-            if not self.validate_password():
-                raise Exception("Incorrect password.")
-
             time.sleep(1)  # Small delay for GUI
 
             total_packages = len(self.packages)
@@ -57,17 +40,16 @@ class InstallerWorker(QObject):
 
             for i, pkg in enumerate(self.packages):
                 if not self.is_installed(pkg, is_python=pkg.startswith("python3-")):
-                    cmd = ["sudo", "-S", "apt", "install", "-y", pkg]
+                    cmd = ["pkexec", "apt", "install", "-y", pkg]
                     proc = subprocess.run(
                         cmd,
-                        input=(self.password + "\n").encode(),
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE
                     )
                     if proc.returncode != 0:
                         raise Exception(proc.stderr.decode())
 
-                    if pkg == "nvidia-driver-535":
+                    if pkg.startswith("nvidia-driver-"):
                         reboot_needed = True
 
                 # Update progress
@@ -99,6 +81,7 @@ class DependencyChecker(QWidget):
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(False)  # Hidden initially
         layout.addWidget(self.progress_bar)
 
         self.setLayout(layout)
@@ -142,7 +125,6 @@ class DependencyChecker(QWidget):
         python_reqs = [
             ("PyQt6", "python3-pyqt6"),
             ("PyQt6.QtCharts", "python3-pyqt6.qtcharts"),
-            # ("psutil", "python3-psutil"),
         ]
 
         # NVIDIA-specific requirements (optional)
@@ -167,22 +149,20 @@ class DependencyChecker(QWidget):
 
         # NVIDIA driver check (only if GPU exists)
         if self.has_nvidia_gpu() and not self.is_nvidia_working():
-            self.missing.append("nvidia-driver-535")
+            if not self.has_nvidia_driver_installed():
+                self.missing.append("nvidia-driver-535")
 
         if self.missing:
             self.label.setText(
                 "⚠️ Missing dependencies:\n" + ", ".join(self.missing) + "\nInstalling..."
             )
 
-            password = self.get_password()
-            if not password:
-                sys.exit(1)
-
+            self.progress_bar.setVisible(True)  # Show only during install
             self.progress_bar.setRange(0, 100)
             self.progress_bar.setValue(0)
 
             self.thread = QThread()
-            self.worker = InstallerWorker(self.missing, password)
+            self.worker = InstallerWorker(self.missing)
             self.worker.moveToThread(self.thread)
 
             self.thread.started.connect(self.worker.run)
@@ -197,25 +177,18 @@ class DependencyChecker(QWidget):
         else:
             self.dependencies_ready.emit()
 
-    def get_password(self):
-        """Prompt GUI for sudo password with retry on wrong input."""
-        while True:
-            password, ok = QInputDialog.getText(
-                self, "Admin Password", "Enter your system password:", QLineEdit.EchoMode.Password
-            )
-            if not ok:
-                return None
-
-            proc = subprocess.run(
-                ["sudo", "-S", "echo", "ok"],
-                input=(password + "\n").encode(),
+    def has_nvidia_driver_installed(self):
+        """Check if any NVIDIA driver (nvidia-driver-*) is installed."""
+        try:
+            result = subprocess.run(
+                ["dpkg", "--list"],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                text=True
             )
-            if proc.returncode == 0:
-                return password
-            else:
-                QMessageBox.warning(self, "Wrong Password", "The password you entered is incorrect. Please try again.")
+            return any("nvidia-driver-" in line for line in result.stdout.splitlines())
+        except Exception:
+            return False
 
     def install_finished(self):
         self.progress_bar.setValue(100)
@@ -238,9 +211,9 @@ class DependencyChecker(QWidget):
     def show_reboot_prompt(self):
         reply = QMessageBox()
         reply.setWindowTitle("Reboot Required")
-        reply.setText("nvidia-driver-535 was installed.\nA system reboot is required.")
+        reply.setText("NVIDIA driver was installed.\nA system reboot is required.")
         reply.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
         ok_button = reply.button(QMessageBox.StandardButton.Ok)
         ok_button.setText("Reboot Now")
         if reply.exec() == QMessageBox.StandardButton.Ok:
-            subprocess.run(["sudo", "reboot"])
+            subprocess.run(["pkexec", "reboot"])
