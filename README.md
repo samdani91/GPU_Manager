@@ -62,7 +62,7 @@ Download and install the pre-built `.deb` package:
 
 ```bash
 # Download the latest release
-wget https://github.com/yourusername/gpu_settings/releases/download/v0.1/python3-gpu-settings_0.1-1_all.deb
+wget https://github.com/samdani91/GPU_Manager/blob/main/deb_dist/python3-gpu-settings_0.1-1_all.deb
 
 # Install the package
 sudo dpkg -i python3-gpu-settings_0.1-1_all.deb
@@ -330,7 +330,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### v0.1 (Current)
 - Initial release with basic GPU switching
-- Real-time monitoring and process management
+-  Currently shows live stats only for dedicated NVIDIA GPUs (integrated GPU support coming soon)
 - Automatic dependency checking and installation
 - Debian package distribution
 - Modern dark UI with charts
