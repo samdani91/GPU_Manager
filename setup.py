@@ -2,11 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name="gpu_settings",
-    version="0.1",
+    version="0.2",
     packages=find_packages("src"),
     package_dir={"": "src"},
     install_requires=[
         "PyQt6",
+        "PyQt6-Charts"
         "psutil"
     ],
     entry_points={
@@ -20,4 +21,3 @@ setup(
     long_description="GPU Settings GUI application for Linux",
     long_description_content_type="text/plain",
 )
-

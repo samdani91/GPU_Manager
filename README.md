@@ -52,7 +52,7 @@ A modern PyQt6-based GUI application for monitoring and switching between integr
 - `prime-select` utility (nvidia-prime package)
 - `nvidia-smi` (nvidia-utils-535 package)
 - `pkexec` for privilege escalation
-- PyQt6 and PyQt6-Charts
+-  PyQt6 and PyQt6-Charts
 
 ## Installation
 

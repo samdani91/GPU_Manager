@@ -115,11 +115,9 @@ class DependencyChecker(QWidget):
 
     def is_installed(self, package, is_python=False):
         if is_python:
-            # Check if Python package is installed
             spec = importlib.util.find_spec(package)
             return spec is not None
         else:
-            # Check Debian package via dpkg
             result = subprocess.run(
                 ["dpkg", "-s", package],
                 stdout=subprocess.PIPE,
@@ -127,31 +125,48 @@ class DependencyChecker(QWidget):
             )
             return result.returncode == 0
 
+    def has_nvidia_gpu(self):
+        """Check if the system has a dedicated NVIDIA GPU."""
+        try:
+            result = subprocess.run(
+                ["lspci"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            return "NVIDIA" in result.stdout
+        except Exception:
+            return False
+
     def check_dependencies(self):
         self.missing = []
 
-        # Define requirements: (Python module name, Debian package name)
-        requirements = [
+        # Python requirements (always needed)
+        python_reqs = [
             ("PyQt6", "python3-pyqt6"),
             ("PyQt6.QtCharts", "python3-pyqt6.qtcharts"),
             # ("psutil", "python3-psutil"),
-            ("nvidia_prime", "nvidia-prime"),  # prime-select is a command, check package nvidia-prime
-            ("nvidia_utils_535", "nvidia-utils-535"),  # nvidia-smi is part of nvidia-utils-535
         ]
+
+        # NVIDIA-specific requirements (optional)
+        nvidia_reqs = [
+            ("nvidia_prime", "nvidia-prime"),
+            ("nvidia_utils_535", "nvidia-utils-535"),
+        ]
+
+        # Build requirements list
+        requirements = python_reqs[:]
+        if self.has_nvidia_gpu():
+            requirements += nvidia_reqs
 
         # Check Python and system packages
         for module_name, pkg in requirements:
             if module_name in ("nvidia_prime", "nvidia_utils_535"):
-                # System package check
-                if not self.is_installed(pkg):
+                if not self.is_installed(pkg):  # System package
                     self.missing.append(pkg)
             else:
-                # Python package check
                 if not self.is_installed(module_name.split('.')[0], is_python=True):
                     self.missing.append(pkg)
 
-        # Check NVIDIA driver separately
-        if not self.is_nvidia_working():
+        # NVIDIA driver check (only if GPU exists)
+        if self.has_nvidia_gpu() and not self.is_nvidia_working():
             self.missing.append("nvidia-driver-535")
 
         if self.missing:
@@ -191,7 +206,6 @@ class DependencyChecker(QWidget):
             if not ok:
                 return None
 
-            # Quick validation without installing packages
             proc = subprocess.run(
                 ["sudo", "-S", "echo", "ok"],
                 input=(password + "\n").encode(),
@@ -230,10 +244,3 @@ class DependencyChecker(QWidget):
         ok_button.setText("Reboot Now")
         if reply.exec() == QMessageBox.StandardButton.Ok:
             subprocess.run(["sudo", "reboot"])
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    checker = DependencyChecker()
-    checker.show()
-    sys.exit(app.exec())
